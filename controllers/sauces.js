@@ -1,13 +1,18 @@
 const fs = require('fs');
 const sauces = require('../models/sauces');
 const Sauce = require('../models/sauces');
+const user = require('../models/user');
 
 exports.createSauce = (req, res) => {
     const sauceObject = JSON.parse(req.body.sauce);
     delete sauceObject._id;
     const sauce = new Sauce({
         ...sauceObject,
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
+        likes: 0,
+        dislikes: 0,
+        userLiked: [],
+        userDisliked: []
     });
     sauce.save()
     .then(() => res.status(201).json({message: 'Sauce enregistrée !'}))
@@ -51,12 +56,53 @@ exports.getAllSauces = (req, res, next) => {
 };
 
 exports.likeSauce = (req, res, next) => {
-    const like = [];
-    const dislike = [];
+    const userId = req.body.userId;
+    const like = req.body.like;
     Sauce.findOne({_id: req.params.id})
-    .then(() => {
-        if (!like) {
-
+    .then((sauce) => {
+        if (like == 1) {
+            console.log(sauce)
+            if (!sauce.userLiked.includes(userId)) {
+                //je n'ai pas encore liké
+                sauce.userLiked.push(userId);
+                sauce.likes++;
+                sauce.save()
+                .then(sauce => res.status(200).json(sauce))
+                .catch(error => res.status(400).json({error}));
+            } else {
+                //j'ai déjà liké
+                res.status(200).json(sauce)
+            }
+        } else if (like == -1) {
+            console.log(-1)
+            console.log(sauce)
+            if (!sauce.userDisliked.includes(userId)) {
+                sauce.userDisliked.push(userId);
+                sauce.dislikes++;
+                sauce.save()
+                .then(sauce => res.status(200).json(sauce))
+                .catch(error => res.status(400).json({error}));
+            } else {
+                res.status(200).json(sauce)
+            }
+        } else {
+            if (sauce.userLiked.includes(userId)) {
+                sauce.userLiked.pull(userId);
+                sauce.likes--;
+                sauce.save()
+                .then(sauce => res.status(200).json(sauce))
+                .catch(error => res.status(400).json({error}));
+            } else if (sauce.userDisliked.includes(userId)) {
+                sauce.userDisliked.pull(userId);
+                sauce.dislikes--;
+                sauce.save()
+                .then(sauce => res.status(200).json(sauce))
+                .catch(error => res.status(400).json({error}));
+            } else {
+                res.status(200).json(sauce)
+            }
         }
+
     })
+    .catch(error => res.status(400).json({error}));
 }
