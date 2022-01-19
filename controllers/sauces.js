@@ -74,7 +74,6 @@ exports.likeSauce = (req, res, next) => {
                 res.status(200).json(sauce)
             }
         } else if (like == -1) {
-            console.log(-1)
             console.log(sauce)
             if (!sauce.userDisliked.includes(userId)) {
                 sauce.userDisliked.push(userId);
